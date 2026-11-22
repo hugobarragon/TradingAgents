@@ -187,12 +187,14 @@ MODEL_OPTIONS: ProviderModeOptions = {
     # `ollama pull` beyond the three suggested defaults.
     "ollama": {
         "quick": [
+            ("Qwen3.6 MoE Coding NVFP4 - 35B A3B", "qwen3.6:35b-a3b-coding-nvfp4"),
             ("Qwen3:latest (8B)", "qwen3:latest"),
             ("GPT-OSS:latest (20B)", "gpt-oss:latest"),
             ("GLM-4.7-Flash:latest (30B)", "glm-4.7-flash:latest"),
             ("Custom model ID", "custom"),
         ],
         "deep": [
+            ("Qwen3.8 MLX - 27B", "qwen3.8:27b-mlx"),
             ("GLM-4.7-Flash:latest (30B)", "glm-4.7-flash:latest"),
             ("GPT-OSS:latest (20B)", "gpt-oss:latest"),
             ("Qwen3:latest (8B)", "qwen3:latest"),

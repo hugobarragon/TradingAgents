@@ -9,11 +9,15 @@ versions and a stale one must not be offered.
 
 from __future__ import annotations
 
+from importlib import reload
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
+import cli.prefs as cli_prefs
 import cli.selections as cli_selections
+import tradingagents.default_config as default_config_module
 from cli.models import AnalystType
 from cli.prefs import load_last_run, sanitize, save_last_run
 
@@ -25,6 +29,17 @@ SAVED = {
     "quick_think_llm": "gpt-5.6-mini",
     "deep_think_llm": "gpt-5.6",
 }
+
+
+@pytest.mark.unit
+def test_default_preferences_use_repo_local_runtime_data_home(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("TRADINGAGENTS_IN_DOCKER", raising=False)
+
+    reload(cli_prefs)
+
+    repo_root = Path(default_config_module.__file__).resolve().parents[1]
+    assert repo_root / ".tradingagents" / "cli_prefs.json" == cli_prefs._PREFS_PATH
 
 
 @pytest.mark.unit

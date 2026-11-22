@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -13,6 +14,12 @@ def _config_with_env(monkeypatch, **overrides):
     """The defaults as the environment given here would set them."""
     for key in list(default_config_module._ENV_OVERRIDES):
         monkeypatch.delenv(key, raising=False)
+    for key in (
+        "TRADINGAGENTS_RESULTS_DIR",
+        "TRADINGAGENTS_CACHE_DIR",
+        "TRADINGAGENTS_MEMORY_LOG_PATH",
+    ):
+        monkeypatch.delenv(key, raising=False)
     for key, val in overrides.items():
         monkeypatch.setenv(key, val)
     return default_config_module.build_default_config()
@@ -20,12 +27,45 @@ def _config_with_env(monkeypatch, **overrides):
 
 def test_no_env_uses_built_in_defaults(monkeypatch):
     config = _config_with_env(monkeypatch)
-    assert config["llm_provider"] == "openai"
-    assert config["deep_think_llm"] == "gpt-6-sol"
-    assert config["quick_think_llm"] == "gpt-6-luna"
+    assert config["llm_provider"] == "ollama"
+    assert config["deep_think_llm"] == "qwen3.8:27b-mlx"
+    assert config["quick_think_llm"] == "qwen3.6:35b-a3b-coding-nvfp4"
     assert config["backend_url"] is None
     assert config["max_debate_rounds"] == 1
     assert config["checkpoint_enabled"] is False
+
+
+def test_analysts_run_sequentially_by_default(monkeypatch):
+    config = _config_with_env(monkeypatch)
+    assert config["parallel_analysts"] is False
+
+
+def test_parallel_analysts_can_be_enabled_explicitly(monkeypatch):
+    config = _config_with_env(monkeypatch, TRADINGAGENTS_PARALLEL_ANALYSTS="true")
+    assert config["parallel_analysts"] is True
+
+
+def test_default_runtime_paths_are_repo_local(monkeypatch, tmp_path):
+    monkeypatch.delenv("TRADINGAGENTS_IN_DOCKER", raising=False)
+    monkeypatch.chdir(tmp_path)
+    config = _config_with_env(monkeypatch)
+
+    repo_root = Path(default_config_module.__file__).resolve().parents[1]
+    assert config["results_dir"] == str(repo_root / "docs")
+    assert config["data_cache_dir"] == str(repo_root / ".tradingagents" / "cache")
+    assert config["memory_log_path"] == str(
+        repo_root / ".tradingagents" / "memory" / "trading_memory.md"
+    )
+
+
+def test_docker_runtime_paths_use_the_mounted_data_directory(monkeypatch):
+    monkeypatch.setenv("TRADINGAGENTS_IN_DOCKER", "1")
+    config = _config_with_env(monkeypatch)
+
+    home = default_config_module._TRADINGAGENTS_HOME
+    assert config["results_dir"] == os.path.join(home, "logs")
+    assert config["data_cache_dir"] == os.path.join(home, "cache")
+    assert config["memory_log_path"] == os.path.join(home, "memory", "trading_memory.md")
 
 
 def test_string_overrides(monkeypatch):
@@ -96,23 +136,27 @@ def test_empty_env_value_is_passthrough(monkeypatch):
         TRADINGAGENTS_LLM_PROVIDER="",
         TRADINGAGENTS_MAX_DEBATE_ROUNDS="",
     )
-    assert config["llm_provider"] == "openai"
+    assert config["llm_provider"] == "ollama"
     assert config["max_debate_rounds"] == 1
 
 
-def test_empty_path_value_keeps_the_default_path(monkeypatch):
+def test_empty_path_value_keeps_the_default_path(monkeypatch, tmp_path):
     """.env.example lists the path variables blank; uncommenting one made the
     path empty, and the graph failed creating its directories."""
+    monkeypatch.delenv("TRADINGAGENTS_IN_DOCKER", raising=False)
+    monkeypatch.chdir(tmp_path)
     config = _config_with_env(
         monkeypatch,
         TRADINGAGENTS_RESULTS_DIR="",
         TRADINGAGENTS_CACHE_DIR="",
         TRADINGAGENTS_MEMORY_LOG_PATH="",
     )
-    home = default_config_module._TRADINGAGENTS_HOME
-    assert config["results_dir"] == os.path.join(home, "logs")
-    assert config["data_cache_dir"] == os.path.join(home, "cache")
-    assert config["memory_log_path"] == os.path.join(home, "memory", "trading_memory.md")
+    repo_root = Path(default_config_module.__file__).resolve().parents[1]
+    assert config["results_dir"] == str(repo_root / "docs")
+    assert config["data_cache_dir"] == str(repo_root / ".tradingagents" / "cache")
+    assert config["memory_log_path"] == str(
+        repo_root / ".tradingagents" / "memory" / "trading_memory.md"
+    )
 
 
 def test_invalid_int_raises(monkeypatch):

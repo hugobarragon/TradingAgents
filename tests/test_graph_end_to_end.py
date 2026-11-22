@@ -181,12 +181,40 @@ def test_a_graph_reused_across_runs_keeps_no_run_state(tmp_path, monkeypatch, of
 @pytest.mark.unit
 def test_the_analysts_run_at_the_same_time(tmp_path, monkeypatch, offline):
     model = ScriptedModel()
-    graph = _graph(tmp_path, monkeypatch, model)
+    graph = _graph(tmp_path, monkeypatch, model, parallel_analysts=True)
 
     assert not [n for n in graph.graph.get_graph().nodes if n.startswith("Msg Clear")]
     graph.propagate("NVDA", TRADE_DATE)
 
     assert len(model.threads) > 1
+
+
+@pytest.mark.unit
+def test_selected_analysts_can_run_sequentially(tmp_path, monkeypatch, offline):
+    model = ScriptedModel()
+    graph = _graph(tmp_path, monkeypatch, model, parallel_analysts=False)
+
+    _, signal = graph.propagate("NVDA", TRADE_DATE)
+
+    assert signal == "Overweight"
+    assert len(model.threads) == 1
+
+
+@pytest.mark.unit
+def test_missing_analyst_parallelism_setting_defaults_to_sequential(tmp_path, monkeypatch):
+    config = copy.deepcopy(DEFAULT_CONFIG)
+    config.pop("parallel_analysts", None)
+    config.update(
+        results_dir=str(tmp_path / "results"),
+        data_cache_dir=str(tmp_path / "cache"),
+        memory_log_path=str(tmp_path / "log.md"),
+    )
+    model = ScriptedModel()
+    monkeypatch.setattr(trading_graph, "create_tier_client", lambda config, tier, **k: _Client(model))
+
+    graph = trading_graph.TradingAgentsGraph(config=config)
+
+    assert graph.graph_setup.parallel_analysts is False
 
 
 @pytest.mark.unit
@@ -311,7 +339,7 @@ def test_past_decisions_settle_alongside_the_analysts(tmp_path, monkeypatch, off
     from tradingagents.memory import settlement
 
     model = TimedModel()
-    graph = _graph(tmp_path, monkeypatch, model)
+    graph = _graph(tmp_path, monkeypatch, model, parallel_analysts=True)
     graph.memory_log.store_decision("NVDA", "2025-12-31", "Rating: Buy\n\nBuy NVDA.")
     closes = pd.Series([100.0 + i for i in range(10)], index=pd.bdate_range("2026-01-02", periods=10))
     monkeypatch.setattr(settlement, "get_closes", lambda *a, **k: closes)

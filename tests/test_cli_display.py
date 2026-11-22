@@ -20,6 +20,14 @@ from tradingagents.graph.analyst_execution import build_analyst_execution_plan
 
 
 @pytest.mark.unit
+def test_analyst_status_wording_is_not_parallel_only():
+    from cli.display import sync_analyst_tracker_from_chunk, update_analyst_statuses
+
+    assert "run together" not in (update_analyst_statuses.__doc__ or "").lower()
+    assert "run together" not in (sync_analyst_tracker_from_chunk.__doc__ or "").lower()
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize("text", ["0", "False", "None", "[]", "{}", "0.0"])
 def test_a_message_that_reads_like_a_python_value_is_still_text(text):
     """These were parsed as Python and judged empty, so the message vanished."""

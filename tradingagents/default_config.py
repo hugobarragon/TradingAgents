@@ -1,6 +1,14 @@
 import os
+from pathlib import Path
 
 _TRADINGAGENTS_HOME = os.path.join(os.path.expanduser("~"), ".tradingagents")
+
+
+def get_runtime_data_home() -> str:
+    """Return the base directory for non-secret local runtime data."""
+    if os.getenv("TRADINGAGENTS_IN_DOCKER"):
+        return _TRADINGAGENTS_HOME
+    return str(Path(__file__).resolve().parents[1] / ".tradingagents")
 
 # Single source of truth for env-var → config-key overrides. To expose
 # a new config key for environment-based override, add a row here — no
@@ -21,6 +29,7 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_MAX_RISK_ROUNDS":      "max_risk_discuss_rounds",
     "TRADINGAGENTS_MAX_TOOL_ROUNDS":      "max_tool_rounds",
     "TRADINGAGENTS_CHECKPOINT_ENABLED":   "checkpoint_enabled",
+    "TRADINGAGENTS_PARALLEL_ANALYSTS":    "parallel_analysts",
     "TRADINGAGENTS_BENCHMARK_TICKER":     "benchmark_ticker",
     "TRADINGAGENTS_TEMPERATURE":          "temperature",
     "TRADINGAGENTS_LLM_MAX_RETRIES":      "llm_max_retries",
@@ -81,17 +90,30 @@ def build_default_config() -> dict:
     the environment as it is now.
     """
     return _apply_env_overrides({
-        "results_dir": os.getenv("TRADINGAGENTS_RESULTS_DIR") or os.path.join(_TRADINGAGENTS_HOME, "logs"),
-        "data_cache_dir": os.getenv("TRADINGAGENTS_CACHE_DIR") or os.path.join(_TRADINGAGENTS_HOME, "cache"),
-        "memory_log_path": os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH") or os.path.join(_TRADINGAGENTS_HOME, "memory", "trading_memory.md"),
+        "results_dir": (
+            os.getenv("TRADINGAGENTS_RESULTS_DIR")
+            or (
+                str(Path(__file__).resolve().parents[1] / "docs")
+                if not os.getenv("TRADINGAGENTS_IN_DOCKER")
+                else os.path.join(_TRADINGAGENTS_HOME, "logs")
+            )
+        ),
+        "data_cache_dir": (
+            os.getenv("TRADINGAGENTS_CACHE_DIR")
+            or os.path.join(get_runtime_data_home(), "cache")
+        ),
+        "memory_log_path": (
+            os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH")
+            or os.path.join(get_runtime_data_home(), "memory", "trading_memory.md")
+        ),
         # Optional cap on the number of resolved memory log entries. When set,
         # the oldest resolved entries are pruned once this limit is exceeded.
         # Pending entries are never pruned. None disables rotation entirely.
         "memory_log_max_entries": None,
         # LLM settings
-        "llm_provider": "openai",
-        "deep_think_llm": "gpt-6-sol",
-        "quick_think_llm": "gpt-6-luna",
+        "llm_provider": "ollama",
+        "deep_think_llm": "qwen3.8:27b-mlx",
+        "quick_think_llm": "qwen3.6:35b-a3b-coding-nvfp4",
         # When None, each provider's client falls back to its own default endpoint
         # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
         # The CLI overrides this per provider when the user picks one. Keeping a
@@ -169,6 +191,8 @@ def build_default_config() -> dict:
         "tool_vendors": {
             # Example: "get_stock_data": "alpha_vantage",  # Override category default
         },
+        # Analysts run sequentially by default for local LLM memory/VRAM limits.
+        "parallel_analysts": False,
         # Benchmark for alpha calculation in the reflection layer.
         # ``benchmark_ticker`` (when set) overrides the suffix map for all
         # tickers; leave it None to use ``benchmark_map`` for auto-detection

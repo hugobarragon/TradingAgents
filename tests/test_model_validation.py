@@ -23,6 +23,15 @@ class DummyLLMClient(BaseLLMClient):
 
 @pytest.mark.unit
 class ModelValidationTests(unittest.TestCase):
+    def test_ollama_catalog_contains_installed_qwen_tiers(self):
+        from tradingagents.llm_clients.model_catalog import get_model_options
+
+        quick = {value for _, value in get_model_options("ollama", "quick")}
+        deep = {value for _, value in get_model_options("ollama", "deep")}
+
+        self.assertIn("qwen3.6:35b-a3b-coding-nvfp4", quick)
+        self.assertIn("qwen3.8:27b-mlx", deep)
+
     def test_cli_catalog_models_are_all_validator_approved(self):
         for provider, models in get_known_models().items():
             if provider in ("ollama", "openrouter"):
