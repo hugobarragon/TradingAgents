@@ -217,6 +217,14 @@ At start-up the interactive CLI mentions a newer release and notices from Tauric
 
 A saved report also includes `complete_report.html`, the report as one page with its sections listed beside the text, for reading in a browser, on a phone or in print. Answering the save question at the prompt also asks about the page and can open it in your browser; `--no-html` skips it, and so does `ta.save_reports(state, "NVDA", html=False)` from Python.
 
+In a local source checkout, reports default to `docs/reports/`. Cache, memory,
+and remembered CLI choices default to the Git-ignored `.tradingagents/`
+directory at the repository root, even when the CLI is launched from another
+directory. Set `TRADINGAGENTS_RESULTS_DIR`, `TRADINGAGENTS_CACHE_DIR`, or
+`TRADINGAGENTS_MEMORY_LOG_PATH` for explicit overrides. Analysts run
+sequentially by default; set `TRADINGAGENTS_PARALLEL_ANALYSTS=true` to enable
+concurrent analysts. Docker continues to use its mounted data volume.
+
 ### Markets and tickers
 
 TradingAgents works with any market Yahoo Finance covers, using the exchange-suffixed ticker. Company identity and the alpha benchmark resolve automatically per market.
