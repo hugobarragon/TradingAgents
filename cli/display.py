@@ -465,8 +465,8 @@ ANALYST_REPORT_MAP = {
 def update_analyst_statuses(message_buffer, chunk, wall_time_tracker=None):
     """Update analyst statuses from the reports filed so far.
 
-    The analysts run together: each is in progress until its own report lands.
-    When every selected analyst has filed, the research debate is in progress.
+    Each selected analyst is in progress until its report lands. When every
+    selected analyst has filed, the research debate is in progress.
     """
     selected = message_buffer.selected_analysts
 
@@ -614,7 +614,7 @@ def sync_analyst_tracker_from_chunk(
     chunk: dict[str, str],
     now: float | None = None,
 ) -> None:
-    """The analysts start together; each stops its clock when its report lands."""
+    """Start the selected analysts; each stops its clock when its report lands."""
     current_time = monotonic() if now is None else now
     for spec in tracker.plan.specs:
         tracker.mark_started(spec.key, started_at=current_time)
