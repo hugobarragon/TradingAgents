@@ -17,15 +17,15 @@ that is no longer offered is dropped rather than shown.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 from cli.models import AnalystType, AssetType
 from cli.prompts import LISTED_LIVE, _llm_provider_table, filter_analysts_for_asset_type
 from tradingagents.dataflows.files import replace_file
+from tradingagents.default_config import get_runtime_data_home
 from tradingagents.llm_clients.model_catalog import get_model_options
 
-_PREFS_PATH = Path(os.path.expanduser("~")) / ".tradingagents" / "cli_prefs.json"
+_PREFS_PATH = Path(get_runtime_data_home()) / "cli_prefs.json"
 
 REMEMBERED = (
     "output_language", "analysts", "research_depth", "llm_provider",
