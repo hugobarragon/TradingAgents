@@ -99,12 +99,14 @@ class GraphSetup:
         deep_thinking_llm: Any,
         conditional_logic: ConditionalLogic,
         max_tool_rounds: int,
+        parallel_analysts: bool = False,
     ):
         """Initialize with required components."""
         self.quick_thinking_llm = quick_thinking_llm
         self.deep_thinking_llm = deep_thinking_llm
         self.conditional_logic = conditional_logic
         self.max_tool_rounds = max_tool_rounds
+        self.parallel_analysts = parallel_analysts
 
     def setup_graph(
         self, selected_analysts=("market", "social", "news", "fundamentals"), memory_node=None
@@ -154,16 +156,22 @@ class GraphSetup:
         workflow.add_node("Conservative Analyst", conservative_analyst)
         workflow.add_node("Portfolio Manager", portfolio_manager_node)
 
-        # The analysts work at the same time; the research debate starts once
-        # every one of them has filed its report. The memory log settles past
-        # decisions alongside them: only the Portfolio Manager reads its lessons.
+        # The memory log settles past decisions alongside the analysts:
+        # only the Portfolio Manager reads its lessons.
         first_steps = [spec.agent_node for spec in plan.specs]
         if memory_node is not None:
             workflow.add_node("Memory Log", memory_node)
             first_steps.append("Memory Log")
-        for node in first_steps:
-            workflow.add_edge(START, node)
-        workflow.add_edge(first_steps, "Bull Researcher")
+
+        if self.parallel_analysts:
+            for node in first_steps:
+                workflow.add_edge(START, node)
+            workflow.add_edge(first_steps, "Bull Researcher")
+        else:
+            workflow.add_edge(START, first_steps[0])
+            for index in range(len(first_steps) - 1):
+                workflow.add_edge(first_steps[index], first_steps[index + 1])
+            workflow.add_edge(first_steps[-1], "Bull Researcher")
 
         # Both research-debate edges share the complete DEBATE_PATH_MAP (#1088).
         for debate_node in ("Bull Researcher", "Bear Researcher"):
