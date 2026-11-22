@@ -111,9 +111,9 @@ def build_default_config() -> dict:
         # Pending entries are never pruned. None disables rotation entirely.
         "memory_log_max_entries": None,
         # LLM settings
-        "llm_provider": "openai",
-        "deep_think_llm": "gpt-6-sol",
-        "quick_think_llm": "gpt-6-luna",
+        "llm_provider": "ollama",
+        "deep_think_llm": "qwen3.8:27b-mlx",
+        "quick_think_llm": "qwen3.6:35b-a3b-coding-nvfp4",
         # When None, each provider's client falls back to its own default endpoint
         # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
         # The CLI overrides this per provider when the user picks one. Keeping a
