@@ -1,6 +1,14 @@
 import os
+from pathlib import Path
 
 _TRADINGAGENTS_HOME = os.path.join(os.path.expanduser("~"), ".tradingagents")
+
+
+def get_runtime_data_home() -> str:
+    """Return the base directory for non-secret local runtime data."""
+    if os.getenv("TRADINGAGENTS_IN_DOCKER"):
+        return _TRADINGAGENTS_HOME
+    return str(Path(__file__).resolve().parents[1] / ".tradingagents")
 
 # Single source of truth for env-var → config-key overrides. To expose
 # a new config key for environment-based override, add a row here — no
@@ -81,9 +89,22 @@ def build_default_config() -> dict:
     the environment as it is now.
     """
     return _apply_env_overrides({
-        "results_dir": os.getenv("TRADINGAGENTS_RESULTS_DIR") or os.path.join(_TRADINGAGENTS_HOME, "logs"),
-        "data_cache_dir": os.getenv("TRADINGAGENTS_CACHE_DIR") or os.path.join(_TRADINGAGENTS_HOME, "cache"),
-        "memory_log_path": os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH") or os.path.join(_TRADINGAGENTS_HOME, "memory", "trading_memory.md"),
+        "results_dir": (
+            os.getenv("TRADINGAGENTS_RESULTS_DIR")
+            or (
+                str(Path(__file__).resolve().parents[1] / "docs")
+                if not os.getenv("TRADINGAGENTS_IN_DOCKER")
+                else os.path.join(_TRADINGAGENTS_HOME, "logs")
+            )
+        ),
+        "data_cache_dir": (
+            os.getenv("TRADINGAGENTS_CACHE_DIR")
+            or os.path.join(get_runtime_data_home(), "cache")
+        ),
+        "memory_log_path": (
+            os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH")
+            or os.path.join(get_runtime_data_home(), "memory", "trading_memory.md")
+        ),
         # Optional cap on the number of resolved memory log entries. When set,
         # the oldest resolved entries are pruned once this limit is exceeded.
         # Pending entries are never pruned. None disables rotation entirely.
