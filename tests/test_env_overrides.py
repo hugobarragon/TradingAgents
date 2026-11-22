@@ -35,6 +35,16 @@ def test_no_env_uses_built_in_defaults(monkeypatch):
     assert config["checkpoint_enabled"] is False
 
 
+def test_analysts_run_sequentially_by_default(monkeypatch):
+    config = _config_with_env(monkeypatch)
+    assert config["parallel_analysts"] is False
+
+
+def test_parallel_analysts_can_be_enabled_explicitly(monkeypatch):
+    config = _config_with_env(monkeypatch, TRADINGAGENTS_PARALLEL_ANALYSTS="true")
+    assert config["parallel_analysts"] is True
+
+
 def test_default_runtime_paths_are_repo_local(monkeypatch, tmp_path):
     monkeypatch.delenv("TRADINGAGENTS_IN_DOCKER", raising=False)
     monkeypatch.chdir(tmp_path)
