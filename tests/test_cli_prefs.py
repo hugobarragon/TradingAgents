@@ -39,7 +39,7 @@ def test_default_preferences_use_repo_local_runtime_data_home(monkeypatch, tmp_p
     reload(cli_prefs)
 
     repo_root = Path(default_config_module.__file__).resolve().parents[1]
-    assert cli_prefs._PREFS_PATH == repo_root / ".tradingagents" / "cli_prefs.json"
+    assert repo_root / ".tradingagents" / "cli_prefs.json" == cli_prefs._PREFS_PATH
 
 
 @pytest.mark.unit
